@@ -114,7 +114,7 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
 	//   implement this method and use it as a helper during the updateWeights phase.
 	for (int i =0; i < observations.size();i++){
-		double min_length = 1000;
+		double min_length = 1000000;
 		int index = -1;
 		//std::cout<<"Observations:"<<observations[i].x<<","<<observations[i].y<<std::endl;
 		for (int j =0; j < predicted.size(); j++){
@@ -122,14 +122,15 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 			if (distance < min_length){
 				min_length = distance;
 				index = j;
+                                observations[i].id = predicted[index].id;
 			}
 		}
 		//Found the smallest distance. Now asssign the values of the nearest prediction to the observation
-		std::cout <<"Landmark Index:"<<index <<std::endl;
-		std::cout <<"TObservation(x,y): "<<"("<<observations[i].x<<","<<observations[i].y<<")"<<std::endl;
-		std::cout <<"Predicted(x,y): "<<"("<<predicted[index].x<<","<<predicted[index].y<<")"<<std::endl;
+		std::cout <<"Landmark Index:"<<observations[i].id <<std::endl;
+		std::cout <<"TObservation(x,y): "<<"("<<observations[i].x<<","<<observations[i].y<<") ;";
+		std::cout <<"Predicted(x,y): "<<"("<<predicted[index].x<<","<<predicted[index].y<<")"<<"Dist:"<<min_length<<std::endl;
 		//observations[i].id = predicted[index].id;
-		observations[i].id = index;
+		//observations[i].id = index;
 	}
 		
 }
@@ -189,46 +190,36 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 		for (int m =0; m<tObservations.size();m++){
 			double pr_x ;
 			double pr_y;
-			/**
+			
 			for ( int idx = 0 ; idx<  filtered_landmarks.size();idx++)
 			{
 				if (tObservations[m].id == filtered_landmarks[idx].id){
 					//Find the nearest landmark for the observation and use that landmark instead of the observation
 					pr_x = filtered_landmarks[idx].x;
-					pr_y = filtered_landmarks[idx].y;
-					//break;
-				}
-
+					pr_y = filtered_landmarks[idx].y;				
 				// Calculate Multivariate-Gaussian Probability for each observations(mesurements)
+					std::cout<<"LandmarkIndex :"<<filtered_landmarks[idx].id<<std::endl;
+                        		std::cout<<"Landmark(x,y):"<<"("<<pr_x<<","<<pr_y<<"); Particle(x,y):("<<p_x<<","<<p_y<<")"<<std::endl;
 					auto d_x = pr_x - p_x;
 					auto d_y = pr_y - p_y;
 					std::cout<<"dx:"<<d_x<<";"<<"dy:"<<d_y<<std::endl;
 					//Total probability is the product of individual measurement Probabilities.
-					temp_prob = (1.0/(2.0*M_PI*s_x*s_y))* exp (-((d_x*d_x)/(2*s_x*s_x)) + ((d_y*d_y)/(2*s_y*s_y)));
+
+					temp_prob = (1.0/(2.0*M_PI*s_x*s_y))* exp (-(((d_x*d_x)/(2*s_x*s_x)) + ((d_y*d_y)/(2*s_y*s_y))));
 					total_prob *= temp_prob;
 					std::cout<<"TempProb: "<<temp_prob<<std::endl;
+					
 
-			}**/
-			int index = tObservations[m].id;
-			pr_x = filtered_landmarks[index].x;
-			pr_y = filtered_landmarks[index].y;
-			std::cout<<"LandmarkIndex :"<<index<<std::endl;
-                        std::cout<<"Landmark(x,y):"<<"("<<pr_x<<","<<pr_y<<"); Particle(x,y):("<<p_x<<","<<p_y<<")"<<std::endl;
-			auto d_x = pr_x - p_x;
-			auto d_y = pr_y - p_y;
-			std::cout<<"dx:"<<d_x<<";"<<"dy:"<<d_y<<std::endl;
-			// Calculate Multivariate-Gaussian Probability for each observations(mesurements)
-			temp_prob = (1.0/(2.0*M_PI*s_x*s_y))* exp (-((d_x*d_x)/(2*s_x*s_x)) + ((d_y*d_y)/(2*s_y*s_y)));
-                        //Total probability is the product of individual measurement Probabilities. 
-			total_prob *= temp_prob;
-			std::cout<<"TempProb: "<<temp_prob<<std::endl;
+			}
+				
+
+		}
 			particles[i].weight = total_prob;
 			weights[i] = total_prob;
 			std::cout <<"Weight" <<i<< "="<< weights[i]<<std::endl;
-		}
-		//Update the weights
 
-	}							
+	}
+}							
 }
 
 void ParticleFilter::resample() {
@@ -244,7 +235,7 @@ void ParticleFilter::resample() {
 		auto index = d(gen3);
 		new_particles.push_back(std::move(particles[index]));
 	}
-	//assign the particles from folder the original
+	//assign the particles from holder to the original
 	particles = std::move(new_particles);
 
 }
