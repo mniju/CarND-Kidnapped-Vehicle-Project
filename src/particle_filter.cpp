@@ -25,7 +25,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
 	if (!is_initialized){
-	num_particles = 1;
+	num_particles = 10;
 	double std_x, std_y, std_psi; // Standard deviations for x, y, and psi
 	// Set standard deviations for x, y, and psi
 	 std_x = std[0];
@@ -54,11 +54,11 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 		p.weight = 1.0;
 		particles.push_back(p);
 		//weights.push_back(1.0);
-		std::cout<<"Initial Particle:"<< p.x <<"," <<p.y <<","<< p.theta <<std::endl;
+		//std::cout<<"Initial Particle:"<< p.x <<"," <<p.y <<","<< p.theta <<std::endl;
 	}
 	is_initialized = true;
 	//std::cout<< "Initial Particle:"<<p.x <<"," <<p.y <<","<< p.theta <<std::endl;
-	std::cout << "Initialized!!"<<std::endl;
+	//std::cout << "Initialized!!"<<std::endl;
 	}
 	
 
@@ -101,9 +101,9 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 		particles[i].x = x + noise_x(genP);
 		particles[i].y = y + noise_y(genP);
 		particles[i].theta  = theta + noise_psi(genP);
-                std::cout<<"---------------------Prediction Calc------------------------"<<std::endl;
-		std::cout << "Velocity:"<<velocity<<";Yawrate:"<<yaw_rate<<std::endl;
-		std ::cout <<"Predicted:"<<particles[i].x<<" , "<<particles[i].y<<" , "<<particles[i].theta<<std::endl;
+        //std::cout<<"---------------------Prediction Calc------------------------"<<std::endl;
+		//std::cout << "Velocity:"<<velocity<<";Yawrate:"<<yaw_rate<<std::endl;
+		//std ::cout <<"Predicted:"<<particles[i].x<<" , "<<particles[i].y<<" , "<<particles[i].theta<<std::endl;
 	}
 
 }
@@ -122,15 +122,13 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 			if (distance < min_length){
 				min_length = distance;
 				index = j;
-                                observations[i].id = predicted[index].id;
+                observations[i].id = predicted[index].id;
 			}
 		}
 		//Found the smallest distance. Now asssign the values of the nearest prediction to the observation
-		std::cout <<"Landmark Index:"<<observations[i].id <<std::endl;
-		std::cout <<"TObservation(x,y): "<<"("<<observations[i].x<<","<<observations[i].y<<") ;";
-		std::cout <<"Predicted(x,y): "<<"("<<predicted[index].x<<","<<predicted[index].y<<")"<<"Dist:"<<min_length<<std::endl;
-		//observations[i].id = predicted[index].id;
-		//observations[i].id = index;
+		//std::cout <<"Landmark Index:"<<observations[i].id <<std::endl;
+		//std::cout <<"TObservation(x,y): "<<"("<<observations[i].x<<","<<observations[i].y<<") ;";
+		//std::cout <<"Predicted(x,y): "<<"("<<predicted[index].x<<","<<predicted[index].y<<")"<<"Dist:"<<min_length<<std::endl;
 	}
 		
 }
@@ -148,13 +146,11 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
 	std::vector<LandmarkObs> tObservations; //Transformed Observations Vector
-	std::vector<LandmarkObs> filtered_landmarks; //Hold Landmarks in sensor Range
+	std::vector<LandmarkObs> landmarks_inrange; //Hold Landmarks in sensor Range
 	double s_x = std_landmark[0]; //std deviation of the meas in x
 	double s_y = std_landmark[0]; //std deviation of the meas in y
 	double s_theta = std_landmark[1]; //std deviation of the meas in theta
-	//x*cos(theta) - y*sin(theta)+ xt
-	//x*sin(theta) + y*cos(theta) + yt
-	std::cout<<"S_x:"<<s_x<<std::endl;
+	
 	for (int i = 0; i < num_particles; ++i){
 		
 		double p_x = particles[i].x;
@@ -163,62 +159,68 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 		
 		tObservations.clear(); // reset Transformed Observations Vector[]
 		LandmarkObs t_obs; //  Transformed Observation for Single particle
-                std::cout<<"---------------------Obs Transformations------------------------"<<std::endl;
+        //std::cout<<"---------------------Obs Transformations------------------------"<<std::endl;
 		for (int j= 0 ; j < observations.size();j++){
 			t_obs.x = cos(p_theta)*observations[j].x - sin(p_theta)*observations[j].y + p_x;
 			t_obs.y = sin(p_theta)*observations[j].x + cos(p_theta)*observations[j].y + p_y;
 			t_obs.id = observations[j].id;
-			std::cout<<"Obs(x,y)"<<"("<<observations[j].x <<","<<observations[j].y<< ")";
-			std::cout<<"-->TObs(x,y)"<<"("<<t_obs.x <<","<<t_obs.y<< ")"<<std::endl;
+			//std::cout<<"Obs(x,y)"<<"("<<observations[j].x <<","<<observations[j].y<< ")";
+			//std::cout<<"-->TObs(x,y)"<<"("<<t_obs.x <<","<<t_obs.y<< ")"<<std::endl;
 			tObservations.push_back(t_obs);
 		}
 				
 		// Filter Valid Predictions based on sensor Range and distance between particle and Landmark
-		filtered_landmarks.clear();
+		landmarks_inrange.clear();
 		for ( int k=0; k< map_landmarks.landmark_list.size();++k){
-			if (dist(p_x,map_landmarks.landmark_list[k].x_f,p_y,map_landmarks.landmark_list[k].y_f) < sensor_range){
-			filtered_landmarks.push_back(LandmarkObs{map_landmarks.landmark_list[k].id_i,map_landmarks.landmark_list[k].x_f,map_landmarks.landmark_list[k].y_f,});
+			
+			if (dist(p_x,p_y,map_landmarks.landmark_list[k].x_f,map_landmarks.landmark_list[k].y_f) < sensor_range){
+			landmarks_inrange.push_back(LandmarkObs{map_landmarks.landmark_list[k].id_i,map_landmarks.landmark_list[k].x_f,map_landmarks.landmark_list[k].y_f,});
 			}
 		}
 				
 		//Find the prediction that points to a Observation, finds the probability/Weights
-                 std::cout<<"---------------------Assosciations------------------------"<<std::endl;
-		dataAssociation(filtered_landmarks,tObservations);
+        //std::cout<<"---------------------Assosciations------------------------"<<std::endl;
+		dataAssociation(landmarks_inrange,tObservations);
 		double total_prob = 1.0;
 		double temp_prob =1.0;
-		std::cout<<"---------------------Weights Calc------------------------"<<std::endl;
+		
+		//std::cout<<"---------------------Weights Calc------------------------"<<std::endl;
+		
 		for (int m =0; m<tObservations.size();m++){
-			double pr_x ;
-			double pr_y;
+			double lm_x ;
+			double lm_y;
+			int lm_id;
+			double p_x = tObservations[m].x;
+		    double p_y = tObservations[m].y;
 			
-			for ( int idx = 0 ; idx<  filtered_landmarks.size();idx++)
+			for ( int idx = 0 ; idx<  landmarks_inrange.size();idx++)
 			{
-				if (tObservations[m].id == filtered_landmarks[idx].id){
+				if (tObservations[m].id == landmarks_inrange[idx].id){
 					//Find the nearest landmark for the observation and use that landmark instead of the observation
-					pr_x = filtered_landmarks[idx].x;
-					pr_y = filtered_landmarks[idx].y;				
-				// Calculate Multivariate-Gaussian Probability for each observations(mesurements)
-					std::cout<<"LandmarkIndex :"<<filtered_landmarks[idx].id<<std::endl;
-                        		std::cout<<"Landmark(x,y):"<<"("<<pr_x<<","<<pr_y<<"); Particle(x,y):("<<p_x<<","<<p_y<<")"<<std::endl;
-					auto d_x = pr_x - p_x;
-					auto d_y = pr_y - p_y;
-					std::cout<<"dx:"<<d_x<<";"<<"dy:"<<d_y<<std::endl;
-					//Total probability is the product of individual measurement Probabilities.
-
-					temp_prob = (1.0/(2.0*M_PI*s_x*s_y))* exp (-(((d_x*d_x)/(2*s_x*s_x)) + ((d_y*d_y)/(2*s_y*s_y))));
-					total_prob *= temp_prob;
-					std::cout<<"TempProb: "<<temp_prob<<std::endl;
 					
+					lm_x = landmarks_inrange[idx].x;
+					lm_y = landmarks_inrange[idx].y;
+					lm_id = landmarks_inrange[idx].id;
 
-			}
-				
+			}	
 
 		}
-			particles[i].weight = total_prob;
-			weights[i] = total_prob;
-			std::cout <<"Weight" <<i<< "="<< weights[i]<<std::endl;
+		  // Calculate Multivariate-Gaussian Probability for each observations(mesurements)
+		  //std::cout<<"LandmarkIndex :"<<lm_id<<std::endl;
+          //std::cout<<"Landmark(x,y):"<<"("<<lm_x<<","<<lm_y<<"); Particle(x,y):("<<p_x<<","<<p_y<<")"<<std::endl;
+		  auto d_x = lm_x - p_x;
+		  auto d_y = lm_y - p_y;
+		  //std::cout<<"dx:"<<d_x<<";"<<"dy:"<<d_y<<std::endl;
+		  //Total probability is the product of individual measurement Probabilities.
+		  temp_prob = (1.0/(2.0*M_PI*s_x*s_y))* exp (-(((d_x*d_x)/(2*s_x*s_x)) + ((d_y*d_y)/(2*s_y*s_y))));
+		  total_prob *= temp_prob;
+		  //std::cout<<"TempProb: "<<temp_prob<<std::endl;
+		  
 
 	}
+		particles[i].weight = total_prob;
+		weights[i] = total_prob;
+		//std::cout <<"Weight" <<i<< "="<< weights[i]<<std::endl;
 }							
 }
 
